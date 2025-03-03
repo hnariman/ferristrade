@@ -1,0 +1,10 @@
+[package]
+name = "ferristock"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.31.0"
+egui = "0.31.0"
+binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
+egui_plot = "0.31.0"
