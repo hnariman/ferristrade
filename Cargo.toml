@@ -8,3 +8,4 @@ eframe = "0.31.0"
 egui = "0.31.0"
 binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
 egui_plot = "0.31.0"
+thiserror = "2.0.12"
