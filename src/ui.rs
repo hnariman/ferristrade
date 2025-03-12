@@ -1,17 +1,22 @@
+use std::sync::{Arc, Mutex};
+
 // UI
 use crate::store::Store;
 use eframe::egui;
 use egui::{Color32, Stroke};
 use egui_plot::*;
+use rss::Item;
 
 pub struct MyApp {
     zoom: f32,
-    store: Store,
+    store: Arc<Mutex<Store>>,
+    // news: Arc<Mutex<Vec<Item>>>, // so we can share rss data between gui and update methods
 }
 
 impl Default for MyApp {
     fn default() -> Self {
-        let store = Store::default();
+        let store = Arc::new(Mutex::new(Store::default()));
+        Store::update_news(store.clone());
         Self { zoom: 1.0, store }
     }
 }
@@ -48,29 +53,34 @@ impl eframe::App for MyApp {
                     self.zoomout();
                 }
             });
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.vertical(|ui| {
-                    for item in &self.store.prices {
-                        ui.horizontal(|ui| {
-                            ui.label(item.symbol.to_string());
-                            ui.strong(item.price.to_string());
-                        });
-                    }
-                })
-            })
+            // egui::ScrollArea::vertical().show(ui, |ui| {
+            //     ui.vertical(|ui| {
+            //         for item in &self.store.prices {
+            //             ui.horizontal(|ui| {
+            //                 ui.label(item.symbol.to_string());
+            //                 ui.strong(item.price.to_string());
+            //             });
+            //         }
+            //     })
+            // })
+        });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            candlestick_chart(ui);
         });
 
         egui::SidePanel::right("News").show(ctx, |ui| {
             ui.heading("News");
             ui.vertical(|ui| {
-                for (label, text) in &self.store.news {
-                    ui.label(label);
-                    ui.strong(text);
-                }
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    for item in self.store.lock().unwrap().news.lock().unwrap().clone() {
+                        // for item in self.store.lock().news.lock().unwrap().clone() {
+                        ui.label(item.title().unwrap_or("no title"));
+                        ui.strong(item.description().unwrap_or("no description"));
+                        ui.separator();
+                    }
+                })
             })
-        });
-        egui::CentralPanel::default().show(ctx, |ui| {
-            candlestick_chart(ui);
         });
     }
 }
