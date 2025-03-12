@@ -6,9 +6,11 @@ use std::time::Duration;
 use binance::api::*;
 use binance::market::*;
 use binance::model::*;
+use tokio::runtime;
 use tokio::time::interval;
 
 pub struct Store {
+    pub rt: tokio::runtime::Runtime,
     pub prices: Vec<SymbolPrice>,
     pub market: Market,
     // so that we can share data between threads (egui/update)
@@ -26,7 +28,13 @@ impl Default for Store {
         let prices = all_prices.into_iter().filter(|p| p.price > 1.0).collect();
 
         let news = Arc::new(Mutex::new(Vec::new()));
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
         Self {
+            rt,
             prices,
             market,
             news,
@@ -45,7 +53,7 @@ impl Store {
         Ok(())
     }
 
-    pub fn update_news(store: Arc<Mutex<Store>>) {
+    pub fn update_news(&self, store: Arc<Mutex<Store>>) {
         // thread::spawn(move || loop {
         //     let state_clone = state.clone();
         //     let state_guard = state_clone.lock().unwrap();
@@ -55,7 +63,8 @@ impl Store {
         //     drop(state_guard);
         //     thread::sleep(Duration::from_secs(60));
         // });
-        tokio::spawn(async move {
+
+        self.rt.spawn(async move {
             let mut interval = interval(Duration::from_secs(60));
             loop {
                 interval.tick().await;

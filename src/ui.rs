@@ -5,7 +5,6 @@ use crate::store::Store;
 use eframe::egui;
 use egui::{Color32, Stroke};
 use egui_plot::*;
-use rss::Item;
 
 pub struct MyApp {
     zoom: f32,
@@ -16,7 +15,7 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> Self {
         let store = Arc::new(Mutex::new(Store::default()));
-        Store::update_news(store.clone());
+        Store::update_news(&Store::default(), store.clone());
         Self { zoom: 1.0, store }
     }
 }
