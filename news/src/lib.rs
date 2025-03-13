@@ -5,12 +5,20 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use reqwest::{self};
+use reqwest::{self, redirect::Action};
 use rss;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Article {
     title: String,
+}
+
+impl Article {
+    fn new(title: &str) -> Self {
+        Self {
+            title: title.to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -38,47 +46,56 @@ pub struct Feeds {
 
 impl Default for Feeds {
     fn default() -> Self {
+        let mut default_news = HashSet::new();
+        default_news.insert(Article::new("mock news1 before update"));
+        default_news.insert(Article::new("mock news2 before update"));
+        default_news.insert(Article::new("mock news3 before update"));
+        default_news.insert(Article::new("mock news4 before update"));
+        default_news.insert(Article::new("mock news5 before update"));
+
+        let mut default_urls = vec![
+            // TODO: move to yml/toml/json config maybe even env
+            Resource::new(
+                "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines",
+                "DowJones",
+                None,
+            ),
+            Resource::new("https://www.ft.com/rss/home/uk", "Financial Times", None),
+            // Resource::new(
+            //     "https://www.wsj.com/news/rss-news-and-feeds",
+            //     "The Wall Street Journal",
+            //     None,
+            // ),
+            Resource::new(
+                "http://rss.cnn.com/rss/money_latest.rss",
+                "CNN Business",
+                None,
+            ),
+            // Resource::new(
+            //     "http://feeds.reuters.com/reuters/businessNews",
+            //     "Reuters",
+            //     None,
+            // ),
+            // Resource::new(
+            //     "https://www.cnbc.com/id/10000311/device/rss/rss.html",
+            //     "CNBC",
+            //     None,
+            // ),
+            // Resource::new(
+            //     "https://www.bloomberg.com/feeds/markets/rss",
+            //     "Bloomberg",
+            //     None,
+            // ),
+            Resource::new(
+                "https://finance.yahoo.com/rss/topstories",
+                "Yahoo Finance",
+                None,
+            ),
+        ];
+
         Self {
-            news: Arc::new(RwLock::new(HashSet::default())),
-            urls: Arc::new(RwLock::new(vec![
-                // TODO: move to yml/toml/json config maybe even env
-                Resource::new(
-                    "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines",
-                    "DowJones",
-                    None,
-                ),
-                Resource::new("https://www.ft.com/rss/home/uk", "Financial Times", None),
-                // Resource::new(
-                //     "https://www.wsj.com/news/rss-news-and-feeds",
-                //     "The Wall Street Journal",
-                //     None,
-                // ),
-                Resource::new(
-                    "http://rss.cnn.com/rss/money_latest.rss",
-                    "CNN Business",
-                    None,
-                ),
-                // Resource::new(
-                //     "http://feeds.reuters.com/reuters/businessNews",
-                //     "Reuters",
-                //     None,
-                // ),
-                // Resource::new(
-                //     "https://www.cnbc.com/id/10000311/device/rss/rss.html",
-                //     "CNBC",
-                //     None,
-                // ),
-                // Resource::new(
-                //     "https://www.bloomberg.com/feeds/markets/rss",
-                //     "Bloomberg",
-                //     None,
-                // ),
-                Resource::new(
-                    "https://finance.yahoo.com/rss/topstories",
-                    "Yahoo Finance",
-                    None,
-                ),
-            ])),
+            news: Arc::new(RwLock::new(default_news)),
+            urls: Arc::new(RwLock::new(default_urls)),
         }
     }
 }
@@ -104,20 +121,28 @@ impl Feeds {
         let articles = channel
             .items
             .iter()
-            .map(|a| {
-                // dbg!(a);
-                return Article {
-                    title: a.title.clone().unwrap_or_default(),
-                };
-            })
+            .map(|a| Article::new(&a.title.as_ref().unwrap()))
             .collect::<HashSet<Article>>();
 
         Ok(articles)
     }
 
-    //TODO: and now implement method which doesn't use tokio sleep/timer,
-    // egui has own timer :palmface:
-    // next time RTFM and Docs :)
+    pub async fn update(&self) {
+        let mut accumulator: HashSet<Article> = HashSet::new();
+
+        let urls = self.urls.read().unwrap().clone();
+        for url in urls {
+            if let Ok(response) = Self::fetch(&url).await {
+                accumulator = accumulator.union(&response).cloned().collect();
+            }
+        }
+
+        let mut news = self.news.write().unwrap();
+        *news = news
+            .union(&accumulator)
+            .cloned()
+            .collect::<HashSet<Article>>();
+    }
 
     pub async fn update_and_show(&self) {
         let feed = self.clone();
