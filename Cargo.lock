@@ -2218,6 +2218,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "markets"
+version = "0.1.0"
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2366,6 +2370,16 @@ name = "never"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c96aba5aa877601bb3f6dd6a63a969e1f82e60646e81e71b14496995e9853c91"
+
+[[package]]
+name = "news"
+version = "0.1.0"
+dependencies = [
+ "reqwest 0.12.12",
+ "rss",
+ "thiserror 2.0.12",
+ "tokio",
+]
 
 [[package]]
 name = "nix"
@@ -3227,6 +3241,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "sentiment"
+version = "0.1.0"
+
+[[package]]
 name = "serde"
 version = "1.0.218"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3662,9 +3680,23 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
+ "parking_lot",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
+ "tokio-macros",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e06d43f1345a3bcd39f6a56dbb7dcab2ba47e68e8ac134855e7e2bdbaf8cab8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3832,6 +3864,10 @@ dependencies = [
  "tempfile",
  "winapi",
 ]
+
+[[package]]
+name = "ui"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"
