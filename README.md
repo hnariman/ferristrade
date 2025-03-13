@@ -30,3 +30,18 @@ use AI for summary generation and trading strategy optimization.
 - ability to use some HuggingFace models for market data analysis and sentiment analysis
 - stocks can be added in the watchlist and AI provides sentiment analysis for each stock and "portfolio"
 - rss/twitter sentiment analysis for tweets related to stocks and portfolios
+
+### Examples 
+
+- just update: 
+```bash
+cargo run -p news --example=just_update
+```
+
+- update and show results in cli:
+
+```bash
+cargo run -p news --example=basic
+```
+
+
