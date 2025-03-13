@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+binance = { git = "https://github.com/wisespace-io/binance-rs.git" }
+tokio = { version = "1.44.0", features = ["full"] }
+thiserror = "2.0.12"
