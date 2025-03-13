@@ -105,7 +105,7 @@ impl Feeds {
             .items
             .iter()
             .map(|a| {
-                dbg!(a);
+                // dbg!(a);
                 return Article {
                     title: a.title.clone().unwrap_or_default(),
                 };
@@ -132,8 +132,12 @@ impl Feeds {
 
                 let news_guard = feed.urls.read().unwrap().clone();
                 for resource in news_guard.iter() {
+                    println!("{}{}{}", "=".repeat(20), resource.title, "=".repeat(20));
                     if let Ok(v) = Self::fetch(resource).await {
                         accumulated = accumulated.union(&v).cloned().collect();
+                        v.iter().for_each(|i| {
+                            println!("{}", i.title);
+                        })
                     }
                 }
                 // let data = news_guard
