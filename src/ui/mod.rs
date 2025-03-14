@@ -1,26 +1,27 @@
 use core::f64;
-use std::{
-    fs::symlink_metadata,
-    sync::{Arc, Mutex},
-    vec,
-};
+use std::sync::{Arc, Mutex};
 
 // UI
 use crate::store::Store;
-use binance::{
-    api::Binance,
-    model::{KlineSummary, Symbol},
-};
-use chrono::DateTime;
+use binance::model::{KlineSummary, Symbol};
+use catppuccin_egui::{Theme, MOCHA};
+use chrono::{DateTime, TimeZone, Utc};
 use eframe::egui;
-use egui::{gui_zoom::kb_shortcuts, Color32, Stroke};
+use egui::{Color32, Stroke};
 use egui_plot::*;
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Config {
     up_color: Color32,
     down_color: Color32,
     chart_refresh: usize,
+    theme: Theme,
+}
+
+impl Config {
+    fn set_theme(&mut self, theme: Theme) {
+        self.theme = theme;
+    }
 }
 
 pub struct MyApp {
@@ -37,6 +38,7 @@ impl Default for MyApp {
             up_color: Color32::from_rgb(0, 255, 0),
             down_color: Color32::from_rgb(255, 0, 0),
             chart_refresh: 10,
+            theme: MOCHA,
         };
         Self {
             zoom: 2.0,
@@ -136,13 +138,26 @@ impl MyApp {
         // TODO: move to settings and have default constants?
         // let down = self.config.down_color;
         // let up = self.config.up_color;
+        //
+        let custom_x_axis = vec![AxisHints::new_x().formatter(
+            |grid_mark: GridMark, _range: &std::ops::RangeInclusive<f64>| {
+                Utc.timestamp_opt(grid_mark.value as i64, 0)
+                    .single()
+                    .unwrap()
+                    .format("%Y-%b-%d")
+                    .to_string()
+            },
+        )];
 
         let plot = Plot::new("candlestick chart")
             .legend(Legend::default())
             .view_aspect(2.0)
             .allow_zoom(true)
+            .allow_boxed_zoom(true)
             .show_x(true)
             .show_y(true)
+            .custom_x_axes(custom_x_axis)
+            .custom_y_axes(vec![AxisHints::new_y().label("Price")])
             .center_x_axis(false)
             .center_y_axis(false);
 
@@ -155,7 +170,35 @@ impl MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after_secs(1.0);
-        catppuccin_egui::set_theme(&ctx, catppuccin_egui::MOCHA);
+        // catppuccin_egui::set_theme(&ctx, catppuccin_egui::MOCHA);
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("Themes", |ui| {
+                    if ui.button("Dark").clicked() {
+                        ctx.set_theme(egui::Theme::Dark)
+                    }
+                    if ui.button("Light").clicked() {
+                        ctx.set_theme(egui::Theme::Light)
+                        // ctx.set_theme(catppuccin_egui::MOCHA)
+                    }
+                    // if ui.button("Latte").clicked() {
+                    //     ctx.set_theme(egui::Theme::Dark)
+                    // }
+                    // if ui.button("Mocha").clicked() {
+                    //     ctx.set_theme(egui::Theme::Light)
+                    //     // ctx.set_theme(catppuccin_egui::MOCHA)
+                    // }
+                    // if ui.button("Macchiato").clicked() {
+                    //     // ctx.set_theme(catppuccin_egui::MACCHIATO)
+                    // }
+                    if ui.small_button("Debug: chart").clicked() {
+                        let values = self.store.lock().unwrap().chart_data.clone();
+                        dbg!(values);
+                        eprintln!("small button")
+                    }
+                })
+            });
+        });
         self.left_panel(ctx);
         self.central_panel(ctx);
         self.right_panel(ctx);
@@ -200,15 +243,16 @@ impl TryFrom<Vec<KlineSummary>> for ChartCandle {
                 kline.open_time as f64 / 1000.0,
                 BoxSpread::new(
                     kline.low.parse::<f64>().unwrap(),
-                    kline.close.parse::<f64>().unwrap(),
-                    median(&kline.high, &kline.low),
                     kline.open.parse::<f64>().unwrap(),
+                    median(&kline.high, &kline.low) as f64,
+                    kline.close.parse::<f64>().unwrap(),
                     kline.high.parse::<f64>().unwrap(),
                 ),
             )
-            .whisker_width(0.0)
+            .whisker_width(2.0)
+            .box_width(4.0)
             .fill(Color32::from_rgb(255, 0, 0))
-            .stroke(Stroke::new(2.0, Color32::from_rgb(255, 0, 0)))
+            .stroke(Stroke::new(6.0, Color32::from_rgb(255, 0, 0)))
         };
 
         let down_candle = |kline: &KlineSummary| {
@@ -216,24 +260,29 @@ impl TryFrom<Vec<KlineSummary>> for ChartCandle {
                 kline.open_time as f64 / 1000.0,
                 BoxSpread::new(
                     kline.low.parse::<f64>().unwrap(),
-                    kline.open.parse::<f64>().unwrap(),
-                    median(&kline.high, &kline.low),
                     kline.close.parse::<f64>().unwrap(),
+                    median(&kline.high, &kline.low) as f64,
+                    kline.open.parse::<f64>().unwrap(),
                     kline.high.parse::<f64>().unwrap(),
                 ),
             )
-            .whisker_width(0.0)
+            .whisker_width(100.0)
+            .box_width(4.0)
             .fill(Color32::from_rgb(0, 255, 0))
-            .stroke(Stroke::new(2.0, Color32::from_rgb(0, 255, 0)))
+            .stroke(Stroke::new(6.0, Color32::from_rgb(0, 255, 0)))
         };
 
         let candles: Vec<BoxElem> = value
             .iter()
             .map(|kline| {
                 if uptrend(&kline) {
-                    up_candle(&kline)
+                    let data = up_candle(&kline);
+                    dbg!(&data);
+                    return data;
                 } else {
-                    down_candle(&kline)
+                    let data = down_candle(&kline);
+                    dbg!(&data);
+                    return data;
                 }
             })
             .collect();
