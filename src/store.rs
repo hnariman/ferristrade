@@ -15,6 +15,7 @@ pub struct Store {
     pub market: Market,
     // so that we can share data between threads (egui/update)
     pub news: Arc<Mutex<Vec<rss::Item>>>,
+    pub chart_data: Vec<KlineSummary>,
 }
 
 impl Default for Store {
@@ -33,11 +34,16 @@ impl Default for Store {
             .build()
             .unwrap();
 
+        let chart_data = match market.get_klines("BTCUSDT", "1d", 100, None, None).unwrap() {
+            KlineSummaries::AllKlineSummaries(v) => v,
+        };
+
         Self {
             rt,
             prices,
             market,
             news,
+            chart_data,
         }
     }
 }
