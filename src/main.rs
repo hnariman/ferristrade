@@ -1,6 +1,5 @@
 use crate::ui::MyApp;
 use egui;
-mod feeds;
 mod store;
 mod ui;
 
