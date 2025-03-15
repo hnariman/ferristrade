@@ -45,7 +45,7 @@ impl Market {
     pub fn get_klines(&mut self) {
         let mut klines: Vec<KlineSummary> = vec![];
 
-        let response = self.market.get_klines("BTCUSDT", "1m", 10, None, None);
+        let response = self.market.get_klines("BTCUSDT", "15m", 10, None, None);
 
         if let Ok(v) = response {
             match v {
