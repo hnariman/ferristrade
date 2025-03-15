@@ -57,6 +57,15 @@ impl Store {
         Ok(())
     }
 
+    pub fn update_tickers(&mut self) {
+        let market: Market = Binance::new(None, None);
+        let all_prices = match market.get_all_prices().expect("market get_all_prices") {
+            Prices::AllPrices(a) => a,
+        };
+
+        self.prices = all_prices.into_iter().filter(|p| p.price > 1.0).collect();
+    }
+
     // pub fn update_news(&self, store: Arc<Mutex<Store>>) {
     // thread::spawn(move || loop {
     //     let state_clone = state.clone();

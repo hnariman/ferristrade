@@ -1,5 +1,10 @@
 use core::f64;
-use std::sync::{Arc, Mutex};
+use std::{
+    env::consts::ARCH,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 // UI
 use crate::store::Store;
@@ -7,8 +12,9 @@ use binance::model::KlineSummary;
 use catppuccin_egui::{Theme, MOCHA};
 use chrono::{TimeZone, Utc};
 use eframe::egui;
-use egui::{Color32, Stroke};
+use egui::{mutex, Color32, Stroke};
 use egui_plot::*;
+use tokio::net::lookup_host;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -33,7 +39,25 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> Self {
         let store = Arc::new(Mutex::new(Store::default()));
+        let store_clone = store.clone();
+        let store_clone2 = store.clone();
+        let egui_ctx = eframe::egui::Context::default();
+        let egui_ctx2 = eframe::egui::Context::default();
         Store::get_news(&store.lock().unwrap()).unwrap();
+
+        thread::spawn(move || loop {
+            thread::sleep(Duration::from_secs(10));
+            if let Ok(x) = store_clone.lock().unwrap().get_news() {
+                egui_ctx.request_repaint();
+                println!("news updated");
+            }
+        });
+
+        thread::spawn(move || loop {
+            thread::sleep(Duration::from_secs(5));
+            Store::update_tickers(&mut store_clone2.lock().unwrap());
+            egui_ctx2.request_repaint();
+        });
 
         // Store::update_news(&Store::default(), store.clone());
         let config = Config {
@@ -82,16 +106,16 @@ impl MyApp {
                     }
                 });
 
-                // egui::ScrollArea::vertical().show(ui, |ui| {
-                //     ui.vertical(|ui| {
-                //         for item in &self.store.prices {
-                //             ui.horizontal(|ui| {
-                //                 ui.label(item.symbol.to_string());
-                //                 ui.strong(item.price.to_string());
-                //             });
-                //         }
-                //     })
-                // })
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.vertical(|ui| {
+                        for item in &self.store.lock().unwrap().prices {
+                            ui.horizontal(|ui| {
+                                ui.label(item.symbol.to_string());
+                                ui.strong(item.price.to_string());
+                            });
+                        }
+                    })
+                })
             });
     }
     pub fn right_panel(&mut self, ctx: &egui::Context) {
@@ -99,15 +123,39 @@ impl MyApp {
             .min_width(300.0)
             .show(ctx, |ui| {
                 ui.heading("News");
-                ui.vertical(|ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        for item in self.store.lock().unwrap().news.lock().unwrap().clone() {
-                            ui.label(&item.title);
-                            ui.strong(&item.title);
-                            ui.separator();
-                        }
-                    })
-                })
+
+                let available_height = ui.available_height();
+                let top_height = available_height * 0.8;
+                let bottom_height = available_height - top_height;
+
+                ui.allocate_ui_with_layout(
+                    egui::vec2(ui.available_width(), top_height),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.vertical(|ui| {
+                            egui::ScrollArea::vertical().show(ui, |ui| {
+                                for item in self.store.lock().unwrap().news.lock().unwrap().clone()
+                                {
+                                    ui.label(&item.title);
+                                    ui.strong(&item.title);
+                                    ui.separator();
+                                }
+                            })
+                        })
+                    },
+                );
+
+                ui.separator();
+                ui.heading("Market Sentiment Outlook");
+                ui.allocate_ui_with_layout(
+                    egui::vec2(ui.available_height(), bottom_height),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.vertical(|ui| {
+                            ui.strong("and some market analysis text here from AI agent")
+                        })
+                    },
+                )
             });
     }
 
