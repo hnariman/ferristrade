@@ -10,7 +10,7 @@ use rss;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Article {
-    title: String,
+    pub title: String,
 }
 
 impl Article {
@@ -148,7 +148,7 @@ impl Feeds {
         let feed = self.clone();
 
         tokio::spawn(async move {
-            let mut timer = tokio::time::interval(std::time::Duration::from_secs(10));
+            let mut timer = tokio::time::interval(std::time::Duration::from_secs(60));
 
             loop {
                 let mut accumulated: HashSet<Article> = HashSet::new();

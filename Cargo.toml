@@ -12,6 +12,9 @@ members = [
   "sentiment",
 ]
 
+[workspace.dependencies]
+news = {path="news"}
+
 [dependencies]
 eframe = "0.31.0"
 egui = "0.31.0"
@@ -23,3 +26,5 @@ rss = "2.0.12"
 tokio = { version = "1.44.0", features = ["full"] }
 chrono = "0.4.40"
 catppuccin-egui = { version = "5.5.0", default-features = false, features = ["egui31"] }
+news = {workspace = true}
+

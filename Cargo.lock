@@ -1313,6 +1313,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui_plot",
+ "news",
  "reqwest 0.12.12",
  "rss",
  "thiserror 2.0.12",

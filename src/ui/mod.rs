@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 
 // UI
 use crate::store::Store;
-use binance::model::{KlineSummary, Symbol};
+use binance::model::KlineSummary;
 use catppuccin_egui::{Theme, MOCHA};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use eframe::egui;
 use egui::{Color32, Stroke};
 use egui_plot::*;
@@ -33,7 +33,9 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> Self {
         let store = Arc::new(Mutex::new(Store::default()));
-        Store::update_news(&Store::default(), store.clone());
+        Store::get_news(&store.lock().unwrap()).unwrap();
+
+        // Store::update_news(&Store::default(), store.clone());
         let config = Config {
             up_color: Color32::from_rgb(0, 255, 0),
             down_color: Color32::from_rgb(255, 0, 0),
@@ -66,57 +68,77 @@ impl MyApp {
     // fn candle_chart(&mut self) { todo!() }
     //
     pub fn left_panel(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("Tickers:").show(ctx, |ui| {
-            ctx.set_pixels_per_point(self.zoom);
-            ui.heading("Tickers:");
-            ui.horizontal_top(|ui| {
-                if ui.button("zoom-in").clicked() {
-                    self.zoomin();
-                }
-                if ui.button("zoom-out").clicked() {
-                    self.zoomout();
-                }
-            });
+        egui::SidePanel::left("Tickers:")
+            .min_width(200.0)
+            .show(ctx, |ui| {
+                ctx.set_pixels_per_point(self.zoom);
+                ui.heading("Tickers:");
+                ui.horizontal_top(|ui| {
+                    if ui.button("zoom-in").clicked() {
+                        self.zoomin();
+                    }
+                    if ui.button("zoom-out").clicked() {
+                        self.zoomout();
+                    }
+                });
 
-            // egui::ScrollArea::vertical().show(ui, |ui| {
-            //     ui.vertical(|ui| {
-            //         for item in &self.store.prices {
-            //             ui.horizontal(|ui| {
-            //                 ui.label(item.symbol.to_string());
-            //                 ui.strong(item.price.to_string());
-            //             });
-            //         }
-            //     })
-            // })
-        });
+                // egui::ScrollArea::vertical().show(ui, |ui| {
+                //     ui.vertical(|ui| {
+                //         for item in &self.store.prices {
+                //             ui.horizontal(|ui| {
+                //                 ui.label(item.symbol.to_string());
+                //                 ui.strong(item.price.to_string());
+                //             });
+                //         }
+                //     })
+                // })
+            });
     }
     pub fn right_panel(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::right("News").show(ctx, |ui| {
-            ui.heading("News");
-            ui.vertical(|ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for item in self.store.lock().unwrap().news.lock().unwrap().clone() {
-                        // for item in self.store.lock().news.lock().unwrap().clone() {
-                        ui.label(item.title().unwrap_or("no title"));
-                        ui.strong(item.description().unwrap_or("no description"));
-                        ui.separator();
-                    }
+        egui::SidePanel::right("News")
+            .min_width(300.0)
+            .show(ctx, |ui| {
+                ui.heading("News");
+                ui.vertical(|ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for item in self.store.lock().unwrap().news.lock().unwrap().clone() {
+                            ui.label(&item.title);
+                            ui.strong(&item.title);
+                            ui.separator();
+                        }
+                    })
                 })
-            })
-        });
+            });
     }
 
     pub fn central_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            let data: ChartCandle = self
-                .store
-                .lock()
-                .expect("Mutex lock is poisoned central_panel()")
-                .chart_data
-                .clone()
-                .try_into()
-                .expect("unable to convert store data into chart_candle: central_panel()");
-            MyApp::candlestick_chart(self, ui, data);
+            egui::Window::new("BTCUSDT")
+                .open(&mut true)
+                .show(ctx, |ui| {
+                    let data: ChartCandle = self
+                        .store
+                        .lock()
+                        .expect("Mutex lock is poisoned central_panel()")
+                        .chart_data
+                        .clone()
+                        .try_into()
+                        .expect("unable to convert store data into chart_candle: central_panel()");
+                    MyApp::candlestick_chart(self, ui, data);
+                });
+            egui::Window::new("BTCUSDC")
+                .open(&mut true)
+                .show(ctx, |ui| {
+                    let data: ChartCandle = self
+                        .store
+                        .lock()
+                        .expect("Mutex lock is poisoned central_panel()")
+                        .chart_data
+                        .clone()
+                        .try_into()
+                        .expect("unable to convert store data into chart_candle: central_panel()");
+                    MyApp::candlestick_chart(self, ui, data);
+                });
         });
     }
 
@@ -192,8 +214,8 @@ impl eframe::App for MyApp {
                     //     // ctx.set_theme(catppuccin_egui::MACCHIATO)
                     // }
                     if ui.small_button("Debug: chart").clicked() {
-                        let values = self.store.lock().unwrap().chart_data.clone();
-                        dbg!(values);
+                        // let values = self.store.lock().unwrap().chart_data.clone();
+                        // dbg!(values);
                         eprintln!("small button")
                     }
                 })
@@ -277,11 +299,11 @@ impl TryFrom<Vec<KlineSummary>> for ChartCandle {
             .map(|kline| {
                 if uptrend(&kline) {
                     let data = up_candle(&kline);
-                    dbg!(&data);
+                    // dbg!(&data);
                     return data;
                 } else {
                     let data = down_candle(&kline);
-                    dbg!(&data);
+                    // dbg!(&data);
                     return data;
                 }
             })
