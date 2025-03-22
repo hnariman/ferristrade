@@ -1,22 +1,28 @@
 use core::f64;
 use std::{
-    env::consts::ARCH,
+    collections::HashSet,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
 };
 
+pub mod candle_chart;
+pub mod central_panel;
+pub mod left_panel;
+pub mod menu_panel;
+pub mod right_panel;
 // UI
 use crate::store::Store;
-use binance::model::KlineSummary;
+use binance::model::{KlineSummary, Prices, SymbolPrice};
 use catppuccin_egui::{Theme, MOCHA};
 use chrono::{TimeZone, Utc};
 use eframe::egui;
-use egui::{mutex, Color32, Stroke};
+use egui::{Color32, Stroke};
 use egui_plot::*;
-use tokio::net::lookup_host;
+use news::Article;
+use tokio::sync::mpsc::Receiver;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Config {
     up_color: Color32,
     down_color: Color32,
@@ -30,51 +36,70 @@ impl Config {
     }
 }
 
-pub struct MyApp {
+pub struct Terminal {
     zoom: f32,
-    store: Arc<Mutex<Store>>,
+    store: Store,
     config: Config,
 }
 
-impl Default for MyApp {
-    fn default() -> Self {
-        let store = Arc::new(Mutex::new(Store::default()));
-        let store_clone = store.clone();
-        let store_clone2 = store.clone();
-        let egui_ctx = eframe::egui::Context::default();
-        let egui_ctx2 = eframe::egui::Context::default();
-        Store::get_news(&store.lock().unwrap()).unwrap();
+impl Terminal {}
 
-        thread::spawn(move || loop {
-            thread::sleep(Duration::from_secs(10));
-            if let Ok(x) = store_clone.lock().unwrap().get_news() {
-                egui_ctx.request_repaint();
-                println!("news updated");
-            }
-        });
+// impl Default for Terminal {
+//     fn default() -> Self {
+//         // TODO: move this logic to actors in main.rs
+//         let store = Arc::new(Mutex::new(Store::default()));
+//         let store_clone = store.clone();
+//         let store_clone2 = store.clone();
+//         let egui_ctx = eframe::egui::Context::default();
+//         let egui_ctx2 = eframe::egui::Context::default();
+//         Store::get_news(&store.lock().unwrap()).unwrap();
+//
+//         thread::spawn(move || loop {
+//             thread::sleep(Duration::from_secs(10));
+//             if let Ok(_) = store_clone.lock().unwrap().get_news() {
+//                 egui_ctx.request_repaint();
+//                 println!("news updated");
+//             }
+//         });
+//
+//         thread::spawn(move || loop {
+//             thread::sleep(Duration::from_secs(5));
+//             Store::update_tickers(&mut store_clone2.lock().unwrap());
+//             egui_ctx2.request_repaint();
+//         });
+//
+//         // Store::update_news(&Store::default(), store.clone());
+//         let config = Config {
+//             up_color: Color32::from_rgb(0, 255, 0),
+//             down_color: Color32::from_rgb(255, 0, 0),
+//             chart_refresh: 10,
+//             theme: MOCHA,
+//         };
+//         Self {
+//             zoom: 2.0,
+//             store,
+//             config,
+//         }
+//     }
+// }
 
-        thread::spawn(move || loop {
-            thread::sleep(Duration::from_secs(5));
-            Store::update_tickers(&mut store_clone2.lock().unwrap());
-            egui_ctx2.request_repaint();
-        });
+impl Terminal {
+    pub fn new(news: Receiver<Vec<Article>>, tickers: Receiver<Vec<KlineSummary>>) -> Self {
+        let store = Store::new(news, tickers);
 
-        // Store::update_news(&Store::default(), store.clone());
         let config = Config {
             up_color: Color32::from_rgb(0, 255, 0),
             down_color: Color32::from_rgb(255, 0, 0),
             chart_refresh: 10,
             theme: MOCHA,
         };
+
         Self {
             zoom: 2.0,
             store,
             config,
         }
     }
-}
-
-impl MyApp {
     fn zoomin(&mut self) {
         if self.zoom > 4.0 {
             return;
@@ -172,7 +197,7 @@ impl MyApp {
                         .clone()
                         .try_into()
                         .expect("unable to convert store data into chart_candle: central_panel()");
-                    MyApp::candlestick_chart(self, ui, data);
+                    Terminal::candlestick_chart(self, ui, data);
                 });
             egui::Window::new("BTCUSDC")
                 .open(&mut true)
@@ -185,7 +210,7 @@ impl MyApp {
                         .clone()
                         .try_into()
                         .expect("unable to convert store data into chart_candle: central_panel()");
-                    MyApp::candlestick_chart(self, ui, data);
+                    Terminal::candlestick_chart(self, ui, data);
                 });
         });
     }
@@ -237,7 +262,7 @@ impl MyApp {
     }
 }
 
-impl eframe::App for MyApp {
+impl eframe::App for Terminal {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after_secs(1.0);
         // catppuccin_egui::set_theme(&ctx, catppuccin_egui::MOCHA);
@@ -284,6 +309,7 @@ struct ChartValue {
     stroke: (f64, Color32),
 }
 
+#[derive(Debug)]
 pub struct ChartCandle {
     data: BoxPlot,
 }

@@ -231,6 +231,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.97"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
+
+[[package]]
 name = "arboard"
 version = "3.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1307,15 +1313,18 @@ dependencies = [
 name = "ferristock"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "binance",
  "catppuccin-egui",
  "chrono",
  "eframe",
  "egui",
  "egui_plot",
+ "markets",
  "news",
  "reqwest 0.12.12",
  "rss",
+ "sentiment",
  "thiserror 2.0.12",
  "tokio",
 ]

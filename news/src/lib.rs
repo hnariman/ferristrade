@@ -14,7 +14,7 @@ pub struct Article {
 }
 
 impl Article {
-    fn new(title: &str) -> Self {
+    pub fn new(title: &str) -> Self {
         Self {
             title: title.to_string(),
         }
