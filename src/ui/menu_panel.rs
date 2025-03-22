@@ -1,4 +1,4 @@
-pub fn menu() {
+pub fn app_menu(ctx: &egui::Context) {
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("Themes", |ui| {

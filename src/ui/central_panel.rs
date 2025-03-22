@@ -1,10 +1,10 @@
-use super::ChartCandle;
+// use super::ChartCandle;
 
 pub fn central_panel(ctx: &egui::Context) {
-    egui::CentralPanel::default().show(ctx, |ui| {
+    egui::CentralPanel::default().show(ctx, |_ui| {
         egui::Window::new("BTCUSDT")
             .open(&mut true)
-            .show(ctx, |ui| {
+            .show(ctx, |_ui| {
                 // let data: ChartCandle = self
                 //     .store
                 //     .lock()
@@ -17,7 +17,7 @@ pub fn central_panel(ctx: &egui::Context) {
             });
         egui::Window::new("BTCUSDC")
             .open(&mut true)
-            .show(ctx, |ui| {
+            .show(ctx, |_ui| {
                 // let data: ChartCandle = self
                 //     .store
                 //     .lock()

@@ -1,19 +1,15 @@
 use std::collections::HashSet;
-use std::error::Error;
-use std::sync::{Arc, Mutex};
-use std::vec;
 
 #[allow(unused, dead_code)]
 // binance:
 use binance::api::*;
-use binance::market::*;
 use binance::model::*;
 use news::{self, Article};
 use tokio::sync::mpsc::Receiver;
 
 use crate::ui::ChartCandle;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct ChartWindow {
     title: String,
     timeframe: String,
@@ -26,9 +22,9 @@ pub struct Store {
     // pub market: Market,
     // so that we can share data between threads (egui/update)
     // pub news: Arc<Mutex<HashSet<Article>>>,
-    pub news: Receiver<Vec<Article>>,
+    pub news: Receiver<HashSet<Article>>,
     pub chart_data: Vec<KlineSummary>,
-    // pub chart_windows:Vec<ChartWindow>
+    // pub chart_windows: Vec<ChartWindow>,
 }
 
 // impl Default for Store {
@@ -62,7 +58,7 @@ pub struct Store {
 // }
 
 impl Store {
-    pub fn new(news: Receiver<Vec<Article>>, tickers: Receiver<Vec<KlineSummary>>) -> Store {
+    pub fn new(news: Receiver<HashSet<Article>>, tickers: Receiver<Vec<KlineSummary>>) -> Store {
         // let chart_data = vec![];
         Store {
             news,

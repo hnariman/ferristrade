@@ -1,4 +1,4 @@
-pub fn right_panel(&mut self, ctx: &egui::Context) {
+pub fn right_panel(ctx: &egui::Context) {
     egui::SidePanel::right("News")
         .min_width(300.0)
         .show(ctx, |ui| {
@@ -14,11 +14,11 @@ pub fn right_panel(&mut self, ctx: &egui::Context) {
                 |ui| {
                     ui.vertical(|ui| {
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            for item in self.store.lock().unwrap().news.lock().unwrap().clone() {
-                                ui.label(&item.title);
-                                ui.strong(&item.title);
-                                ui.separator();
-                            }
+                            // for item in self.store.lock().unwrap().news.lock().unwrap().clone() {
+                            //     ui.label(&item.title);
+                            //     ui.strong(&item.title);
+                            //     ui.separator();
+                            // }
                         })
                     })
                 },
